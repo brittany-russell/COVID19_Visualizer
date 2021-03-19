@@ -87,18 +87,10 @@ ui <- fluidPage(
 
   sidebarLayout(position = "right",
                 sidebarPanel("",
-                             #checkboxGroupInput("choose_plots", label = h3("Select:"), 
-                              #                  choices = list("Cumulative" = 1, "Daily Rolling Average" = 2),
-                              #                  selected = 1),
                              selectizeInput("my_state",
                                             label = "Select state/province:",
                                             choices = NULL),
-                             #selectizeInput("my_county",
-                              #              label = "Select county:",
-                              #              choices = NULL),
                              uiOutput("my_county"),
-                             #textOutput("county_selection"),
-                             
                              dateRangeInput("date_range",
                                             label = "Select date range:",
                                             start = "2020-01-22",
@@ -128,11 +120,7 @@ server <- function(input, output, session) {
   county_options <- reactive({
     unique(all_dat$Combined_Key[all_dat$Province_State == input$my_state & !is.na(all_dat$Combined_Key)])
   })
-    # prove reactive function returns list of state-dependent counties
-    #output$county_selection <- renderText({
-    #  counties_reactive <- county_options()
-    #  head(counties_reactive)
-    #})
+
   # county selection -- needs to depend on state
   output$my_county <- renderUI({
     counties_reactive <- county_options()
