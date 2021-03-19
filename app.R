@@ -9,7 +9,7 @@ library(ggplot2) # plotting
 library(magrittr) # for %<>%
 library(zoo) # rollmean() for rolling avg
 
-#load("plot_data/all_dat.RData")
+load("all_dat.RData")
 ###################
 # My plotting app #
 # Basic:
@@ -26,58 +26,6 @@ library(zoo) # rollmean() for rolling avg
   # incorporate model to estimate effects of policies
     # Need to decide what model, which policies, dependent vars
 ####################
-
-# Data from CSSEGISandData (Johns Hopkins University)
-confirmed <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv")
-confirmed_long <- confirmed %>% gather("date", "cases", 12:ncol(confirmed))
-confirmed_long$date <- parse_date(confirmed_long$date, format = "%m/%d/%y")
-
-deaths <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_US.csv")
-deaths_long <- deaths %>% gather("date", "deaths", 13:ncol(deaths))
-deaths_long$date <- parse_date(deaths_long$date, format = "%m/%d/%y")
-
-# combined data set
-long_dat <- deaths_long
-long_dat$cases <- confirmed_long$cases
-# remove all data with population of zero -- that doesn't seem useful
-long_dat %<>% filter(Population != 0) # removes approx 47,000 obs
-# per capita deaths and cases (per 1000)
-long_dat %<>% mutate(cases_pc = 1000 * cases/Population, deaths_pc = 1000 * deaths/Population)
-# time variable
-long_dat %<>% mutate(days = date - min(date))
-# might need to turn this numeric? now it's difftime
-
-# More dependent vars
-long_dat %<>% arrange(Combined_Key)
-long_dat %<>% group_by(Combined_Key) %>% 
-  mutate(daily_cases = cases - lag(cases), daily_deaths = deaths - lag(deaths)) %>%
-  mutate(daily_cases_pc = 1000 * daily_cases/Population, daily_deaths_pc = 1000 * daily_deaths/Population) %>%
-  add_column("Type" = "County")
-
-# State data set (add up numbers across state)
-state_dat <- long_dat %>% group_by(Province_State, date) %>% 
-  summarize(cases = sum(cases), deaths = sum(deaths), Population = sum(Population)) %>%
-  mutate(cases_pc = 1000 * cases/Population, deaths_pc = 1000 * deaths/Population) %>%
-  mutate(daily_cases = cases - lag(cases), daily_deaths = deaths - lag(deaths)) %>%
-  mutate(daily_cases_pc = 1000 * daily_cases/Population, daily_deaths_pc = 1000 * daily_deaths/Population) %>%
-  add_column("Type" = "State")
-
-# National numbers
-nation_dat <- long_dat %>% group_by(date) %>% 
-  summarize(cases = sum(cases), deaths = sum(deaths), Population = sum(Population)) %>%
-  mutate(cases_pc = 1000 * cases/Population, deaths_pc = 1000 * deaths/Population) %>%
-  mutate(daily_cases = cases - lag(cases), daily_deaths = deaths - lag(deaths)) %>%
-  mutate(daily_cases_pc = 1000 * daily_cases/Population, daily_deaths_pc = 1000 *daily_deaths/Population) %>%
-  add_column("Type" = "Nation")
-
-## Daily cases and daily change are really jagged -- 7-day rolling avg is probably better visually
-long_dat %<>% mutate(rolling_daily_cases = rollmean(daily_cases_pc, k = 7, fill = NA), rolling_daily_deaths = rollmean(daily_deaths_pc, k = 7, fill = NA))
-state_dat %<>% mutate(rolling_daily_cases = rollmean(daily_cases_pc, k = 7, fill = NA), rolling_daily_deaths = rollmean(daily_deaths_pc, k = 7, fill = NA))
-nation_dat %<>% mutate(rolling_daily_cases = rollmean(daily_cases_pc, k = 7, fill = NA), rolling_daily_deaths = rollmean(daily_deaths_pc, k = 7, fill = NA))
-
-# Plotting national and state together
-all_dat <- bind_rows(long_dat, state_dat, nation_dat)
-all_dat$Type <- factor(all_dat$Type, levels = c("Nation", "State", "County"))
 
 
 ## Part 1 ##
